@@ -16,6 +16,9 @@ public class SniperStateTests {
     assertEquals(SniperState.WON, SniperState.WINNING.whenAuctionClosed());
   }
   
+  // RW: Defects are always unexpected and should not be tested for!
+  //     Instead we have to make sure that callers respect the precondition.
+  //     But precondition checking plus simple coverage tests will deal with that automatically!
   @Test(expected=Defect.class) public void
   defectIfAuctionClosesWhenWon() {
     SniperState.WON.whenAuctionClosed();

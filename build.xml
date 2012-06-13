@@ -1,4 +1,6 @@
 <project name="Auction Sniper" default="build">
+    <property name="includeantruntime" value="false" />
+
     <property name="build.dir" location="build" />
     <property name="src.dir" location="src" />
     <property name="test.dir" location="test"/>

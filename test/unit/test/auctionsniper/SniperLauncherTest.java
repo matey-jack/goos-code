@@ -1,15 +1,17 @@
 package test.auctionsniper;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.Matchers.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.States;
-import org.jmock.integration.junit4.JMock;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 
 import auctionsniper.Auction;
 import auctionsniper.AuctionHouse;
@@ -18,29 +20,31 @@ import auctionsniper.SniperCollector;
 import auctionsniper.SniperLauncher;
 import auctionsniper.UserRequestListener.Item;
 
-@RunWith(JMock.class)
+// http://stackoverflow.com/questions/6565971/does-mockito-have-an-equivalent-idiom-to-jmocks-states
+// No, but in many cases, InOrder does the right job!
 public class SniperLauncherTest {
-  private final Mockery context = new Mockery();
-  private final States auctionState = context.states("auction state").startsAs("not joined");
-  private final Auction auction = context.mock(Auction.class);
-  private final AuctionHouse auctionHouse = context.mock(AuctionHouse.class);
-  private final SniperCollector sniperCollector = context.mock(SniperCollector.class);
+  private final Auction auction = mock(Auction.class);
+  private final AuctionHouse auctionHouse = mock(AuctionHouse.class);
+  private final SniperCollector sniperCollector = mock(SniperCollector.class);
   private final SniperLauncher launcher = new SniperLauncher(auctionHouse, sniperCollector);
   
   @Test public void
   addsNewSniperToCollectorAndThenJoinsAuction() {
+	// Given
     final Item item = new Item("item 123", 456);
-
-    context.checking(new Expectations() {{
-      allowing(auctionHouse).auctionFor(item); will(returnValue(auction));
-      
-      oneOf(auction).addAuctionEventListener(with(sniperForItem(item))); when(auctionState.is("not joined"));
-      oneOf(sniperCollector).addSniper(with(sniperForItem(item))); when(auctionState.is("not joined"));
-      
-      one(auction).join(); then(auctionState.is("joined"));
-    }});
+    when(auctionHouse.auctionFor(item)).thenReturn(auction);
     
+    // When
     launcher.joinAuction(item);
+ 
+    // Then
+    final InOrder inOrder = Mockito.inOrder(auction);
+    inOrder.verify(auction).addAuctionEventListener(argThat(sniperForItem(item))); 
+    inOrder.verify(auction).join();
+
+    final InOrder inOrder2 = Mockito.inOrder(auction, sniperCollector);
+    inOrder2.verify(sniperCollector).addSniper(argThat(sniperForItem(item))); 
+    inOrder2.verify(auction).join();
   }
 
   protected Matcher<AuctionSniper>sniperForItem(Item item) {
